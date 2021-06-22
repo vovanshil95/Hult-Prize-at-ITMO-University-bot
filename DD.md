@@ -65,3 +65,15 @@
         )
         
     asyncio.run(main())
+
+UPD я думал, что asyncio это библиотека для высокоуровневой работы с 
+потоками, включающая многопоточность, теперь я понял что асинхронность это
+не многопоточность. Я использовал модуль threading и мой код в
+main теперь выглядит так:
+
+    def lsPolling():
+        ...
+    
+    lsPollingThread = threading.Thread(target=lsPolling) 
+    lsPollingThread.start()
+    lsPollingThread.join()
