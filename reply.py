@@ -150,4 +150,3 @@ def reply(person, event):
             Lsvk.messages.send(message="Введите имя", keyboard=backToMenuKeyboard.get_keyboard())
             person.registeringName = True
             person.registeringEvent = False
-        elif
