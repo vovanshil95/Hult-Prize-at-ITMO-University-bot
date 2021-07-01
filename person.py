@@ -1,19 +1,26 @@
 class Person:
 
-    def __init__(self, id, inMenu, registering, registered, admin):
+    def __init__(self, id, name, events, inMenu, registeringName, registered, admin, justStarted, registeringEvent):
         self.id = id
+        self.name = name
+        self.events = events
         self.inMenu =inMenu
-        self.registering = registering
+        self.registeringName = registeringName
+        self.registeringEvent = registeringEvent
         self.registered = registered
         self.admin = admin
+        self.justStarted = justStarted
 
     id = None
-    Name = ''
+    name = ''
+    events = None
 
     inMenu = False
-    registering = False
+    registeringName = False
+    registeringEvent = False
     registered = False
     admin = False
+    justStarted = False
 
 def getPersonFromArr(persons, id):
     for person in persons:

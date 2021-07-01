@@ -1,7 +1,7 @@
 import threading
 import time
 
-from FuncsWithDataBase import getPersonFromDb
+from FuncsWithDataBase import getPersonFromDb, changeDb
 from person import getPersonFromArr
 
 import vk_api, vk
@@ -10,7 +10,7 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 from vk_api.longpoll import VkLongPoll, VkEventType
 
-from getAnswer import getAnswer
+from reply import reply
 
 vk_session = vk_api.VkApi(token='da09561f3d70f75f9bfa07a169c2e8a092e2ceded34bcafe0b48904208e83475d2837187d6d6ff562c79d')
 
@@ -34,7 +34,7 @@ def lsPolling():
                 persons.append(person)
                 personIDs.append(event.user_id)
             person = getPersonFromArr(persons, event.user_id)
-            getAnswer(person, event.message)
+            reply(person, event)
 
 
 def personDeleting():
@@ -45,6 +45,7 @@ def personDeleting():
             time.sleep(60)
             if id not in activeIds:
                 threads.remove(threading.current_thread())
+                changeDb(getPersonFromArr(persons, id))
                 persons.remove(getPersonFromArr(persons, id))
                 personIDs.remove(id)
                 return
