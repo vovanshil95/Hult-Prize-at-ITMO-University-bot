@@ -8,12 +8,14 @@ from vk_api.utils import get_random_id
 
 from event import Event
 
-from FuncsWithDataBase import newEvent
+from FuncsWithDataBase import newEvent, regiserPerson
 
 import re
 
 
-events = [Event(uuid.uuid4(), "Cобытие 1", "2021-09-01", 146236825), Event(uuid.uuid4(), "Событие 2", "2021-09-02", 146236825), Event(uuid.uuid4(), "Событие 4", "2021-09-02", 146236825)]
+events = [Event("8c9fb997-2436-4274-9d13-c49567cb2d35", "Cобытие 1", "2021-09-01", 146236825, []),
+          Event("b1ede9c8-b171-413b-bda5-9eafdafb51f7", "Событие 2", "2021-09-02", 146236825, []),
+          Event("396dd557-3236-469b-a90e-f1c2c80bf3d3", "Событие 4", "2021-09-02", 146236825, [])]
 questions = [["Вопрос 1", "Ответ на вопрос 1"], ["Вопрос 2", "Ответ на вопрос 2"], ["Вопрос 3", "Ответ на вопрос 3"], ["Вопрос 4", "Ответ на вопрос 4"]]
 unFinishedQuestions = []
 unFinishedEvents = []
@@ -203,6 +205,7 @@ def registeringNameReply(person, event):
             keyboard=eventsKeyboard.get_keyboard(),
             user_ids=event.user_id
         )
+        person.name = event.message
         person.chatState = ChatState.REGISTERING_EVENT
     else:
         Lsvk.messages.send(
@@ -219,16 +222,18 @@ def registeringEventReply(person, event):
                            user_ids=event.user_id)
         person.chatState = ChatState.REGISTERING_NAME
     else:
-        for even in events:
-            if even.name == event.message:
+        for i in range(len(events)):
+            if events[i].name == event.message:
                 person.chatState = ChatState.IN_QUESTION
                 Lsvk.messages.send(random_id=get_random_id(),
                                    message="Вы зарегистрировались на событие",
                                    keyboard=backToMenuKeyboard.get_keyboard(),
                                    user_ids=event.user_id
                                    )
+                events[i].persons.append(person)
+                regiserPerson(events[i])
                 break
-            if str(even.id) == str(events[-1].id):
+            if i == len(events) - 1:
                 Lsvk.messages.send(random_id=get_random_id(),
                                    message="Такого события нет",
                                    keyboard=eventsKeyboard.get_keyboard(),

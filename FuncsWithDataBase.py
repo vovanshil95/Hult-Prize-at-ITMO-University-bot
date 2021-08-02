@@ -40,3 +40,8 @@ def newEvent(event):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
         cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('{event.id}', '{event.name}', '{event.date}', 0)""")
+
+def regiserPerson(event):
+    with sqlite3.connect('bot.db') as con:
+        cur = con.cursor()
+        cur.execute(f"""UPDATE events SET PERSON_IDS = '{event.getPersonIds()}', NUMBER_OF_PERSONS = '{len(event.persons)}' WHERE EVENT_ID = '{event.id}'""")

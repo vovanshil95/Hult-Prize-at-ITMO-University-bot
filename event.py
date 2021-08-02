@@ -3,11 +3,18 @@ class Event:
     adminId = None
     name = None
     date = None
+    persons = None
 
 
-    def __init__(self, id, name, date, adminId):
+    def __init__(self, id, name, date, adminId, persons):
         self.id = id
         self.name = name
         self.date = date
         self.adminId = adminId
+        self.persons = persons
 
+    def getPersonIds(self):
+        personIds = []
+        for person in self.persons:
+            personIds.append(person.id)
+        return personIds
