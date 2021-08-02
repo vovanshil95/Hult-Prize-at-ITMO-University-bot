@@ -1,5 +1,5 @@
 import sqlite3
-from person import Person
+from person import Person, ChatState
 
 def getPersonFromDb(id):
     with sqlite3.connect('bot.db') as con:
@@ -9,31 +9,34 @@ def getPersonFromDb(id):
         if line == []:
             cur.execute(f"""INSERT INTO persons (VK_ID, STATE) VALUES ( {id}, 2)""")
             return Person(id=id,
-                          inMenu=True,
-                          registeringName=False,
-                          registeringEvent=False,
                           registered=False,
                           admin=False,
-                          justStarted=True,
-                          name = None,
-                          events=None
+                          chatState=ChatState.JUST_STARTED,
+                          name="",
+                          events=[]
                           )
         else:
-            state = "0" * (4-len(bin(line[0][3])[2:])) + bin(line[0][3])[2:]
-            return Person (id,
-                           inMenu=bool(int(state[0])),
-                           registeringName=bool(int(state[1])),
-                           registered=bool(int(state[2])),
-                           admin=bool(int(state[3])),
-                           justStarted=bool(int(state[4])),
-                           registeringEvent=bool(int(state[5])),
+            stateNumber = 2
+            state = "0" * (stateNumber-len(bin(line[0][3])[2:])) + bin(line[0][3])[2:]
+            return Person (chatState=ChatState(line[0][3]),
+                           id=id,
                            name=line[0][1],
-                           events=line[0][2]
+                           events=line[0][2],
+                           registered=bool(int(state[0])),
+                           admin=bool(int(state[1]))
                            )
 
 def changeDb(person):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
-        state = person.inMenu * 32 + person.registeringName * 16 + person.registered * 8 + person.admin * 4 + person.justStarted*2 + person.registeringEvent*1
-        cur.execute(f"""UPDATE persons SET PERSON_NAME = {person.name}, EVENTS = {person.events}, STATE = {state}
-                    WHERE VK_ID = {person.id}""")
+        state = 2*int(person.registered) + int(person.admin)
+        cur.execute(f"""UPDATE persons SET PERSON_NAME = {person.name()},
+                                       EVENTS = {person.events()},
+                                       STATE = {state},
+                                       CHAT_STATE = {person.chatState().value}
+                    WHERE VK_ID = {person.id()}""")
+
+def newEvent(event):
+    with sqlite3.connect('bot.db') as con:
+        cur = con.cursor()
+        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('{event.id}', '{event.name}', '{event.date}', 0)""")

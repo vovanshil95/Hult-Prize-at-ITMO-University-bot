@@ -1,9 +1,13 @@
 class Event:
-    def __init__(self, id, name, date):
+    id = None
+    adminId = None
+    name = None
+    date = None
+
+
+    def __init__(self, id, name, date, adminId):
         self.id = id
         self.name = name
         self.date = date
-    id = None
-    name = None
-    date = None
+        self.adminId = adminId
 

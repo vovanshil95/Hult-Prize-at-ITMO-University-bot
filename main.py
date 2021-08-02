@@ -12,6 +12,8 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 
 from reply import reply
 
+from event import Event
+
 vk_session = vk_api.VkApi(token='da09561f3d70f75f9bfa07a169c2e8a092e2ceded34bcafe0b48904208e83475d2837187d6d6ff562c79d')
 
 deleteLongPoll = VkLongPoll(vk_session)
@@ -20,6 +22,7 @@ Lsvk = vk_session.get_api()
 
 persons = []
 personIDs = []
+
 
 def debugFoo():
     while True:
