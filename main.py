@@ -45,7 +45,7 @@ def personDeleting():
     def waiting(id):
         while True:
             activeIds.remove(id)
-            time.sleep(60)
+            time.sleep(10)
             if id not in activeIds:
                 threads.remove(threading.current_thread())
                 changeDb(getPersonFromArr(persons, id))

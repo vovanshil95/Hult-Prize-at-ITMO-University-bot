@@ -18,23 +18,23 @@ def getPersonFromDb(id):
         else:
             stateNumber = 2
             state = "0" * (stateNumber-len(bin(line[0][3])[2:])) + bin(line[0][3])[2:]
-            return Person (chatState=ChatState(line[0][3]),
-                           id=id,
-                           name=line[0][1],
-                           events=line[0][2],
-                           registered=bool(int(state[0])),
-                           admin=bool(int(state[1]))
-                           )
+            return Person(chatState=ChatState(line[0][4]),
+                          id=id,
+                          name=line[0][1],
+                          events=line[0][2],
+                          registered=bool(int(state[0])),
+                          admin=bool(int(state[1])),
+                          )
 
 def changeDb(person):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
         state = 2*int(person.registered) + int(person.admin)
-        cur.execute(f"""UPDATE persons SET PERSON_NAME = {person.name()},
-                                       EVENTS = {person.events()},
+        cur.execute(f"""UPDATE persons SET PERSON_NAME = '{person.name}',
+                                       EVENTS = '{person.events}',
                                        STATE = {state},
-                                       CHAT_STATE = {person.chatState().value}
-                    WHERE VK_ID = {person.id()}""")
+                                       CHAT_STATE = {person.chatState.value}
+                    WHERE VK_ID = {person.id}""")
 
 def newEvent(event):
     with sqlite3.connect('bot.db') as con:
