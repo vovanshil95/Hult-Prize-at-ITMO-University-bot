@@ -32,8 +32,19 @@ for event in Lslongpoll.listen():
             cur = con.cursor()
             cur.execute(
                 f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('1', '{event.message}', '3', 4)""")
-            Lsvk.messages.send(
-                random_id=get_random_id(),
-                message="вот ответ",
-                user_ids=146236825
-            )
+
+        time.sleep(1)
+
+        with sqlite3.connect('bot.db') as con:
+            cur = con.cursor()
+            cur.execute(f"""SELECT * FROM events WHERE EVENT_NAME = {event.message}""")
+
+            line = cur.fetchall()
+
+            answer = line[0][1]
+
+        Lsvk.messages.send(
+            random_id=get_random_id(),
+            message=answer,
+            user_ids=146236825
+        )
