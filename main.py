@@ -68,11 +68,11 @@ def personDeleting():
                     waitThread.start()
                     threads.append(waitThread)
 
-def main():
-    lsPollingThread = threading.Thread(target=lsPolling)
-    personDeletingThread = threading.Thread(target=personDeleting)
 
-    personDeletingThread.start()
-    lsPollingThread.start()
+lsPollingThread = threading.Thread(target=lsPolling)
+personDeletingThread = threading.Thread(target=personDeleting)
 
-    lsPollingThread.join()
+personDeletingThread.start()
+lsPollingThread.start()
+
+lsPollingThread.join()
