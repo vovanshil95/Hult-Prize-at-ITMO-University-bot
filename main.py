@@ -23,7 +23,6 @@ Lsvk = vk_session.get_api()
 persons = []
 personIDs = []
 
-
 def debugFoo():
     while True:
         time.sleep(0.5)
