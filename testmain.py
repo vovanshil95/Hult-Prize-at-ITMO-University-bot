@@ -1,5 +1,6 @@
 import threading
 import time
+import sqlite3
 
 from FuncsWithDataBase import getPersonFromDb, changeDb
 from person import getPersonFromArr
@@ -23,10 +24,16 @@ Lsvk = vk_session.get_api()
 persons = []
 personIDs = []
 
+
+
 for event in Lslongpoll.listen():
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-        Lsvk.messages.send(
-            random_id=get_random_id(),
-            message="вот ответ",
-            user_ids=146236825
-        )
+        with sqlite3.connect('bot.db') as con:
+            cur = con.cursor()
+            cur.execute(
+                f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('1', '{event.message}', '3', 4)""")
+            Lsvk.messages.send(
+                random_id=get_random_id(),
+                message="вот ответ",
+                user_ids=146236825
+            )
