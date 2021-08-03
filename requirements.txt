@@ -1,0 +1,14 @@
+certifi==2021.5.30
+chardet==4.0.0
+httplib2==0.19.1
+idna==2.10
+Markdown==3.3.4
+plantuml==0.3.0
+plantuml-markdown==3.4.2
+pyparsing==2.4.7
+requests==2.25.1
+six==1.16.0
+urllib3==1.26.5
+vk==2.0.2
+vk-api==11.9.4
+vkapi==1.1
