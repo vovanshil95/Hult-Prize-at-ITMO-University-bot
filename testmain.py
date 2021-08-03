@@ -1,6 +1,7 @@
 import threading
 import time
 import sqlite3
+import uuid
 
 from FuncsWithDataBase import getPersonFromDb, changeDb
 from person import getPersonFromArr
@@ -31,13 +32,13 @@ for event in Lslongpoll.listen():
         with sqlite3.connect('bot.db') as con:
             cur = con.cursor()
             cur.execute(
-                f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('1', '{event.message}', '3', 4)""")
+                f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('{uuid.uuid4()}', '{event.message}', '3', 4)""")
 
         time.sleep(1)
 
         with sqlite3.connect('bot.db') as con:
             cur = con.cursor()
-            cur.execute(f"""SELECT * FROM events WHERE EVENT_NAME = {event.message}""")
+            cur.execute(f"""SELECT * FROM events WHERE EVENT_NAME = '{event.message}'""")
 
             line = cur.fetchall()
 
