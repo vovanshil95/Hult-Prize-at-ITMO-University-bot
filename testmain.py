@@ -23,8 +23,10 @@ Lsvk = vk_session.get_api()
 persons = []
 personIDs = []
 
-Lsvk.messages.send(
+for event in Lslongpoll.listen():
+    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+        Lsvk.messages.send(
             random_id=get_random_id(),
-            message="я запущен",
+            message="вот ответ",
             user_ids=146236825
         )
