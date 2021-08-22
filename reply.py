@@ -8,17 +8,17 @@ from vk_api.utils import get_random_id
 
 from event import Event
 
-from FuncsWithDataBase import newEvent, regiserPerson
+from FuncsWithDataBase import newEvent, registerPerson
 
-import re
+import re, datetime
 
-
-events = [Event("8c9fb997-2436-4274-9d13-c49567cb2d35", "Cобытие 1", "2021-09-01", 146236825, []),
-          Event("b1ede9c8-b171-413b-bda5-9eafdafb51f7", "Событие 2", "2021-09-02", 146236825, []),
-          Event("396dd557-3236-469b-a90e-f1c2c80bf3d3", "Событие 4", "2021-09-02", 146236825, [])]
+events = [Event("8c9fb997-2436-4274-9d13-c49567cb2d35", "Cобытие 1", "2021-09-01", 146236825, [],"11:40"),
+          Event("b1ede9c8-b171-413b-bda5-9eafdafb51f7", "Событие 2", "2021-09-02", 146236825, [],"11:40"),
+          Event("396dd557-3236-469b-a90e-f1c2c80bf3d3", "Событие 4", "2021-09-02", 146236825, [],"11:40")]
 questions = [["Вопрос 1", "Ответ на вопрос 1"], ["Вопрос 2", "Ответ на вопрос 2"], ["Вопрос 3", "Ответ на вопрос 3"], ["Вопрос 4", "Ответ на вопрос 4"]]
 unFinishedQuestions = []
 unFinishedEvents = []
+registeringPersons = {}
 
 menuKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
 
@@ -222,23 +222,23 @@ def registeringEventReply(person, event):
                            user_ids=event.user_id)
         person.chatState = ChatState.REGISTERING_NAME
     else:
-        for i in range(len(events)):
-            if events[i].name == event.message:
-                person.chatState = ChatState.IN_QUESTION
-                Lsvk.messages.send(random_id=get_random_id(),
-                                   message="Вы зарегистрировались на событие",
-                                   keyboard=backToMenuKeyboard.get_keyboard(),
-                                   user_ids=event.user_id
-                                   )
-                events[i].persons.append(person)
-                regiserPerson(events[i])
-                break
-            if i == len(events) - 1:
-                Lsvk.messages.send(random_id=get_random_id(),
-                                   message="Такого события нет",
-                                   keyboard=eventsKeyboard.get_keyboard(),
-                                   user_ids=event.user_id
-                                   )
+        if event.message in list(map(lambda event: event.name, events)):
+            i = list(map(lambda event: event.name, events)).index(event.message)
+            person.chatState = ChatState.REGISTERING_EMAIL
+            Lsvk.messages.send(random_id=get_random_id(),
+                               message=f"Отправьте мне свой Email для завершения регистрации на {events[i].name}",
+                               keyboard=backKeyboard.get_keyboard(),
+                               user_ids=event.user_id
+                               )
+            registeringPersons[person] = events[i]
+            person.chatState = ChatState.REGISTERING_EMAIL
+            print(person.chatState)
+        else:
+            Lsvk.messages.send(random_id=get_random_id(),
+                               message="Такого события нет",
+                               keyboard=eventsKeyboard.get_keyboard(),
+                               user_ids=event.user_id
+                               )
 
 
 def making_question_reply(person, event):
@@ -323,7 +323,7 @@ def makingDateReply(person, event):
     if event.message == "Назад":
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Введите название события",
-                           keyboard=backToMenuKeyboard.get_keyboard(),
+                           keyboard=backKeyboard.get_keyboard(),
                            user_ids=event.user_id)
         person.chatState = ChatState.MAKING_EVENT
     elif re.fullmatch('\d{4}-\d\d-\d\d', event.message) \
@@ -331,25 +331,93 @@ def makingDateReply(person, event):
             and 12>=int(event.message[5:7])>0 \
             and 31>=int(event.message[8:10])>0:
         Lsvk.messages.send(random_id=get_random_id(),
-                           message="Всё готово, вернуться в меню?",
-                           keyboard=backToMenuKeyboard.get_keyboard(),
+                           message="Введите время в формате ЧЧ:ММ",
+                           keyboard=backKeyboard.get_keyboard(),
                            user_ids=event.user_id)
-        person.chatState = ChatState.IN_QUESTION
-        for i in range(len(unFinishedEvents)):
-            if unFinishedEvents[i].adminId == person.id:
-                unFinishedEvents[i].date = event.message
-                events.append(unFinishedEvents[i])
-                changeEventsKeyBoard(events)
-                newEvent(unFinishedEvents[i])
-                unFinishedEvents.remove(unFinishedEvents[i])
-                break
+        person.chatState = ChatState.MAKING_TIME
+        unFinishedEvents[(list(map(lambda evenent: event.adminId, events)).index(person.id))].date = event.message
     else:
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Формат не подходящий, введите дату в формате ГГГГ-ММ-ДД",
                            keyboard=backKeyboard.get_keyboard(),
                            user_ids=event.user_id)
 
+def registeringEmail(person, event):
+    if event.message == "назад":
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="Выберите событие",
+                           keyboard=eventsKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+        person.chatState = ChatState.REGISTERING_EVENT
+    elif re.search(r'[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z0-9]+',event.message):
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="и номер телефона",
+                           keyboard=backKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+        person.chatState = ChatState.REGISTERING_PHONE
+        person.email = event.message
+    else:
+        print("ok")
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="введите почту в правильном формате",
+                           keyboard=backKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
 
+def registeringPhone(person, event):
+    clubEvent = registeringPersons.get(person)
+    if event.message == "назад":
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message=f"Отправьте мне свой Email для завершения регистрации на {clubEvent.name}",
+                           keyboard=backKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+        person.chatState = ChatState.REGISTERING_EMAIL
+    elif re.search(r'^\+\d+$', event.message) or re.search(r'^\d+$', event.message):
+        months = {1: "января", 2: "февраля", 3: "марта", 4: "апреля", 5: "мая", 6: "июня", 7: "июля", 8: "августа",
+                  9: "сентября", 10: "октября", 11: "ноября", 12: "декабря"}
+        if (datetime.datetime.strptime(clubEvent.date, "%Y-%m-%d") - datetime.datetime.today()).days == -1:
+            dateString = " сегодня "
+        elif (datetime.datetime.strptime(clubEvent.date, "%Y-%m-%d") - datetime.datetime.today()).days == 0:
+            dateString = " завтра "
+        else:
+            dateString = str(int(clubEvent.date.split("-")[2])) + " " + months[int(clubEvent.date.split("-")[1])]
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message=f"Спасибо, что зарегистрировались! Трансляция пройдет " + dateString + " в " + clubEvent.time,
+                           keyboard=backToMenuKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+        person.chatState = ChatState.IN_QUESTION
+        person.phone = event.message
+        person.registered = True
+        clubEvent.persons.append(person)
+        registerPerson(clubEvent)
+        registeringPersons.pop(person)
+    else:
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="в телефоне должны быть только цифры, введите номер в правильном формате",
+                           keyboard=backKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+
+def makeEventTime(person, event):
+    if event.message == "назад":
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="Введите дату события в формате ГГГГ-ММ-ДД",
+                           keyboaard=backKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+        person.chatState = ChatState.MAKING_DATE
+    elif re.search(r'\d\d:\d\d', event.message):
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="Всё готово, вернуться в меню?",
+                           keyboard=backToMenuKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
+        person.chatState = ChatState.IN_QUESTION
+        unFinishedEvents[list(map(lambda evenent: event.adminId, events)).index(person.id)].time = event.message
+        events.append(unFinishedEvents[list(map(lambda evenent: event.adminId, events)).index(person.id)])
+        unFinishedEvents.pop(list(map(lambda evenent: event.adminId, events)).index(person.id))
+        newEvent(events[-1])
+    else:
+        Lsvk.messages.send(random_id=get_random_id(),
+                           message="время должно быть в формате ЧЧ:ММ, укажите время правильно",
+                           keyboard=backToMenuKeyboard.get_keyboard(),
+                           user_ids=event.user_id)
 
 def reply(person, event):
     if person.admin:
@@ -373,6 +441,12 @@ def reply(person, event):
             makingDateReply(person, event)
         elif person.chatState == ChatState.DELETING_QUESTION:
             deleteQuestionReply(person, event)
+        elif person.chatState == ChatState.MAKING_DATE:
+            makingDateReply(person, event)
+        elif person.chatState == ChatState.REGISTERING_EMAIL:
+            registeringEmail(person, event)
+        elif person.chatState == ChatState.REGISTERING_PHONE:
+            registeringPhone(person, event)
     else:
         if person.chatState == ChatState.JUST_STARTED:
             justStartedReply(person, event)
@@ -384,3 +458,7 @@ def reply(person, event):
             registeringNameReply(person, event)
         elif person.chatState == ChatState.REGISTERING_EVENT:
             registeringEventReply(person, event)
+        elif person.chatState == ChatState.REGISTERING_EMAIL:
+            registeringEmail(person, event)
+        elif person.chatState == ChatState.REGISTERING_PHONE:
+            registeringPhone(person, event)

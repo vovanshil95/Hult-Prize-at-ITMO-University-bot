@@ -24,6 +24,8 @@ def getPersonFromDb(id):
                           events=line[0][2],
                           registered=bool(int(state[0])),
                           admin=bool(int(state[1])),
+                          phone=line[0][5],
+                          email=line[0][6]
                           )
 
 def changeDb(person):
@@ -33,15 +35,17 @@ def changeDb(person):
         cur.execute(f"""UPDATE persons SET PERSON_NAME = '{person.name}',
                                        EVENTS = '{person.events}',
                                        STATE = {state},
+                                       PHONE = '{person.phone}',
+                                       EMAIL = '{person.email}',
                                        CHAT_STATE = {person.chatState.value}
                     WHERE VK_ID = {person.id}""")
 
 def newEvent(event):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
-        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS) VALUES ('{event.id}', '{event.name}', '{event.date}', 0)""")
+        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS, EV_TIME) VALUES ('{event.id}', '{event.name}', '{event.date}',{event.time} 0)""")
 
-def regiserPerson(event):
+def registerPerson(event):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
         cur.execute(f"""UPDATE events SET PERSON_IDS = '{event.getPersonIds()}', NUMBER_OF_PERSONS = '{len(event.persons)}' WHERE EVENT_ID = '{event.id}'""")

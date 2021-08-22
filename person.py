@@ -11,6 +11,9 @@ class ChatState(Enum):
     MAKING_EVENT = 8
     MAKING_DATE = 9
     DELETING_QUESTION = 10
+    REGISTERING_EMAIL = 11
+    REGISTERING_PHONE = 12
+    MAKING_TIME = 13
 
 class Person:
 
@@ -20,8 +23,10 @@ class Person:
     registered = None
     admin = None
     chatState = None
+    phone = None
+    email = None
 
-    def __init__(self, chatState: ChatState, id: int, name: str, events: list, registered: bool, admin: bool):
+    def __init__(self, chatState: ChatState, id: int, name: str, events: list, registered: bool, admin: bool, email: str, phone: str):
         if chatState not in ChatState:
             raise Exception
         self.id = id
@@ -30,6 +35,8 @@ class Person:
         self.registered = registered
         self.admin = admin
         self.chatState = chatState
+        self.email = email
+        self.phone = phone
 
     # @property
     # def chatState(self):
