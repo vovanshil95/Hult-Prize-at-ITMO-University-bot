@@ -5,15 +5,17 @@ class Event:
     date = None
     persons = None
     time = None
+    description = None
 
 
-    def __init__(self, id, name, date, adminId, persons, time):
+    def __init__(self, id, name, date, adminId, persons, time, description):
         self.id = id
         self.name = name
         self.date = date
         self.adminId = adminId
         self.persons = persons
         self.time = time
+        self.description = description
 
 
     def getPersonIds(self):

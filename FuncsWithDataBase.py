@@ -43,7 +43,7 @@ def changeDb(person):
 def newEvent(event):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
-        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS, EV_TIME) VALUES ('{event.id}', '{event.name}', '{event.date}',{event.time} 0)""")
+        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS, EV_TIME, EV_DESCRIPTION) VALUES ('{event.id}', '{event.name}', '{event.date}', '{event.time}', '{event.description}', 0)""")
 
 def registerPerson(event):
     with sqlite3.connect('bot.db') as con:
