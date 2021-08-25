@@ -13,7 +13,10 @@ def getPersonFromDb(id):
                           admin=False,
                           chatState=ChatState.JUST_STARTED,
                           name="",
-                          events=[]
+                          events=[],
+                          email=None,
+                          phone=None,
+                          answers={}
                           )
         else:
             stateNumber = 2
@@ -25,7 +28,8 @@ def getPersonFromDb(id):
                           registered=bool(int(state[0])),
                           admin=bool(int(state[1])),
                           phone=line[0][5],
-                          email=line[0][6]
+                          email=line[0][6],
+                          answers=line[0][7]
                           )
 
 def changeDb(person):
@@ -37,13 +41,14 @@ def changeDb(person):
                                        STATE = {state},
                                        PHONE = '{person.phone}',
                                        EMAIL = '{person.email}',
+                                       ANSWERS = '{person.answers}',
                                        CHAT_STATE = {person.chatState.value}
                     WHERE VK_ID = {person.id}""")
 
 def newEvent(event):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
-        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS, EV_TIME, EV_DESCRIPTION) VALUES ('{event.id}', '{event.name}', '{event.date}', '{event.time}', '{event.description}', 0)""")
+        cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, NUMBER_OF_PERSONS, EV_TIME, EV_DESCRIPTION, EV_HEADER) VALUES ('{event.id}', '{event.name}', '{event.date}', '{event.time}', '{event.description}', {event.header}, 0)""")
 
 def registerPerson(event):
     with sqlite3.connect('bot.db') as con:

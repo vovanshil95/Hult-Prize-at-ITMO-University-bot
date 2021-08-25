@@ -6,9 +6,10 @@ class Event:
     persons = None
     time = None
     description = None
+    header = None
 
 
-    def __init__(self, id, name, date, adminId, persons, time, description):
+    def __init__(self, id, name, date, adminId, persons, time, description, header):
         self.id = id
         self.name = name
         self.date = date
@@ -16,6 +17,7 @@ class Event:
         self.persons = persons
         self.time = time
         self.description = description
+        self.header = header
 
 
     def getPersonIds(self):
