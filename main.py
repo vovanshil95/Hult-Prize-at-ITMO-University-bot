@@ -9,8 +9,11 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 from vk_api.longpoll import VkLongPoll, VkEventType
-
 from reply import reply
+from sending import Sender
+
+
+
 
 from event import Event
 
@@ -37,7 +40,6 @@ def lsPolling():
                 personIDs.append(event.user_id)
             person = getPersonFromArr(persons, event.user_id)
             reply(person, event)
-
 
 def personDeleting():
 
@@ -68,10 +70,14 @@ def personDeleting():
                     threads.append(waitThread)
 
 
+
+sendingThread = threading.Thread(target=Sender.sending, args=(senders))
+
 lsPollingThread = threading.Thread(target=lsPolling)
 personDeletingThread = threading.Thread(target=personDeleting)
 
 personDeletingThread.start()
 lsPollingThread.start()
+sendingThread.start()
 
 lsPollingThread.join()

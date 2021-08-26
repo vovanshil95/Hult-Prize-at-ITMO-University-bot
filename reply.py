@@ -10,11 +10,14 @@ from event import Event
 
 from FuncsWithDataBase import newEvent, registerPerson
 
+from sending import Sender
+
 import re, datetime, copy, requests
 
 events = [Event("8c9fb997-2436-4274-9d13-c49567cb2d35", "Cобытие 1", "2021-09-01", 146236825, [],"11:40", "описание 1", "заголовок 1"),
           Event("b1ede9c8-b171-413b-bda5-9eafdafb51f7", "Событие 2", "2021-09-02", 146236825, [],"11:40", "описание 2", "заголовок 2"),
           Event("396dd557-3236-469b-a90e-f1c2c80bf3d3", "Событие 4", "2021-09-02", 146236825, [],"11:40", "описание 4", "заголовок 3")]
+senders = list(map(lambda event: Sender(event, f"скорее проходите на событие {event.name}"), events))
 questions = [["Вопрос 1", "Ответ на вопрос 1"], ["Вопрос 2", "Ответ на вопрос 2"], ["Вопрос 3", "Ответ на вопрос 3"], ["Вопрос 4", "Ответ на вопрос 4"]]
 unFinishedQuestions = []
 unFinishedEvents = []
@@ -325,19 +328,16 @@ def makingEventReply(person, event):
     if event.message == "Вернуться в меню":
         showEvents(event, person)
         person.chatState = ChatState.IN_EVENTS
-    elif len(event.message) <= 20:
-        unFinishedEvents.append(Event(uuid.uuid4(), event.message, None, person.id))
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите дату события в формате ГГГГ-ММ-ДД",
-                           keyboaard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        person.chatState = ChatState.MAKING_DATE
     else:
+        evTxt = event.message.split("//")
+        evTxt[4] = []
+        events.append(Event(tuple(evTxt)))
+        senders.append(Sender(event=events[-1], message="приходите на наше событие"))
         Lsvk.messages.send(random_id=get_random_id(),
-                           message="Название слишком длинное, выбирите название короче",
-                           keyboard=backToMenuKeyboard.get_keyboard(),
+                           message="событие готово, вернуться в меню?",
+                           keyboaard=backToMenuKeyboard.get_keyboard(),
                            user_ids=event.user_id)
-replys.append(makingEventReply)
+        person.chatState = ChatState.IN_QUESTION
 
 def makingDateReply(person, event):
     if event.message == "Назад":
@@ -592,7 +592,7 @@ def answeringFiveReply(person, event):
                                "👉 Ловите ссылку на шаблон для описания бизнес-задач PSW: bit.ly/2HzCxoH.\n\n"
                                "Будем ждать вас на вебинаре!",
                        user_ids=event.user_id)
-    person.chatState  = ChatState.BEFORE_EVENT
+    person.chatState = ChatState.BEFORE_EVENT
 replys.append(answeringFiveReply)
 
 
