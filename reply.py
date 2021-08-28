@@ -113,7 +113,6 @@ def inEventsReply(person, event):
         registeringPersons = loop.registeringPersons
         registeringPersons[person.id] = events[i]
         person.chatState = ChatState.REGISTERING_EMAIL
-        print(person.chatState)
     else:
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Такого события нет",
@@ -135,7 +134,6 @@ def inEventsReplyAdmin(person, event):
         registeringPersons = loop.registeringPersons
         registeringPersons[person.id] = events[i]
         person.chatState = ChatState.REGISTERING_EMAIL
-        print(person.chatState)
 
     elif event.message == "Добавить вопрос":
         person.chatState = ChatState.MAKING_QUESTION
@@ -204,7 +202,6 @@ def registeringEventReply(person, event):
             registeringPersons = loop.registeringPersons
             registeringPersons[person.id] = events[i]
             person.chatState = ChatState.REGISTERING_EMAIL
-            print(person.chatState)
         else:
             Lsvk.messages.send(random_id=get_random_id(),
                                message="Такого события нет",
@@ -282,7 +279,6 @@ def registeringEmail(person, event):
         person.chatState = ChatState.REGISTERING_PHONE
         person.email = event.message
     else:
-        print("ok")
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Введите почту в правильном формате",
                            keyboard=backKeyboard.get_keyboard(),
@@ -359,7 +355,6 @@ replys.append(beforeEventReply)
 def answeringOneReply(person, event):
     personsAnswering = loop.personsAnswering
     if event.message in personsAnswering.get(person).keys():
-        print(personsAnswering)
         person.answers["Кто вы?"] = personsAnswering.get(person).get(event.message)
         personsAnswering.pop(person)
         answers = ["Боюсь не найти работу после выпуска", "Не понимаю, кем хочу работать после вуза", "Текущая специальность не для меня", "Другое"]
