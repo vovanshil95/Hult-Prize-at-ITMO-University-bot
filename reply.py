@@ -2,8 +2,8 @@ from person import Person, ChatState
 
 import uuid
 
-import vk_api, vk
-from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+import vk_api
+from vk_api.keyboard import VkKeyboard
 from vk_api.utils import get_random_id
 
 from event import Event
@@ -12,18 +12,11 @@ from FuncsWithDataBase import newEvent, registerPerson
 
 from sending import Sender
 
+from loop import loop
+
 import re, datetime, copy, requests
 
-events = [Event("8c9fb997-2436-4274-9d13-c49567cb2d35", "Cобытие 1", "2021-09-01", 146236825, [],"11:40", "описание 1", "заголовок 1"),
-          Event("b1ede9c8-b171-413b-bda5-9eafdafb51f7", "Событие 2", "2021-09-02", 146236825, [],"11:40", "описание 2", "заголовок 2"),
-          Event("396dd557-3236-469b-a90e-f1c2c80bf3d3", "Событие 4", "2021-09-02", 146236825, [],"11:40", "описание 4", "заголовок 3")]
-senders = list(map(lambda event: Sender(event, f"скорее проходите на событие {event.name}"), events))
-questions = [["Вопрос 1", "Ответ на вопрос 1"], ["Вопрос 2", "Ответ на вопрос 2"], ["Вопрос 3", "Ответ на вопрос 3"], ["Вопрос 4", "Ответ на вопрос 4"]]
-unFinishedQuestions = []
-unFinishedEvents = []
-registeringPersons = {}
-personsAnswering = {}
-
+Lsvk = loop.Lsvk
 menuKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
 
 
@@ -35,36 +28,16 @@ def makeQuestionMessage(answers:list, person):
     for i in range(len(answers)):
         message += buttons[i] + ' ' + answers[i] + "\n"
         kb.add_button(buttons[i])
+        if i < len(answers) - 1:
+            kb.add_line()
         answersButtons[buttons[i]] = answers[i]
+    personsAnswering = loop.personsAnswering
     personsAnswering[person] = answersButtons
     return [message, kb]
-
-def changeMenuKeyboard(questions):
-    menuKeyboard.lines = [[]]
-    menuKeyboard.keyboard = {
-        'one_time': menuKeyboard.one_time,
-        'inline': menuKeyboard.inline,
-        'buttons': menuKeyboard.lines
-    }
-    for i in range(len(questions)):
-        menuKeyboard.add_button(questions[i][0])
-        if i%2 == 1:
-            menuKeyboard.add_line()
-    if len(questions)%2 != 0:
-        menuKeyboard.add_line()
-    menuKeyboard.add_button("Зарегистрироваться")
-
-
-
-changeMenuKeyboard(questions)
 
 adminMenuKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
 
 adminMenuKeyboard.add_button("Добавить событие")
-adminMenuKeyboard.add_line()
-adminMenuKeyboard.add_button("Добавить вопрос")
-adminMenuKeyboard.add_line()
-adminMenuKeyboard.add_button("Удалить вопрос")
 
 backToMenuKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
 backToMenuKeyboard.add_button("Вернуться в меню")
@@ -88,7 +61,7 @@ def changeEventsKeyBoard(events):
         if events.index(event) < len(events) - 1:
             eventsKeyboard.add_line()
 
-changeEventsKeyBoard(events)
+changeEventsKeyBoard(loop.events)
 
 def makeQuestionsKeyboard():
     questionsKeyboard = menuKeyboard
@@ -101,16 +74,8 @@ def makeQuestionsKeyboard():
     questionsKeyboard.add_button("Вернуться в меню")
     return questionsKeyboard
 
-vk_session = vk_api.VkApi(token='da09561f3d70f75f9bfa07a169c2e8a092e2ceded34bcafe0b48904208e83475d2837187d6d6ff562c79d')
-Lsvk = vk_session.get_api()
-
-def getAnswer(questionText):
-    for question in questions:
-        if question[0] == questionText:
-            return question[1]
-    return False
-
 def showEvents(event, person):
+    events = loop.events
     message = "Полезные (и бесплатные!) вебинары на этой неделе\n"
     months = {1: "января", 2: "февраля", 3: "марта", 4: "апреля", 5: "мая", 6: "июня", 7: "июля", 8: "августа",
               9: "сентября", 10: "октября", 11: "ноября", 12: "декабря"}
@@ -133,6 +98,7 @@ def showEvents(event, person):
 replys = []
 
 def inEventsReply(person, event):
+    events = loop.events
     if event.message == "/I_am_admin5726":
         person.admin = True
         showEvents(event, person)
@@ -144,7 +110,8 @@ def inEventsReply(person, event):
                            keyboard=backKeyboard.get_keyboard(),
                            user_ids=event.user_id
                            )
-        registeringPersons[person] = events[i]
+        registeringPersons = loop.registeringPersons
+        registeringPersons[person.id] = events[i]
         person.chatState = ChatState.REGISTERING_EMAIL
         print(person.chatState)
     else:
@@ -156,6 +123,7 @@ def inEventsReply(person, event):
 replys.append(inEventsReply)
 
 def inEventsReplyAdmin(person, event):
+    events = loop.events
     if event.message in list(map(lambda event: event.date[5:] + " - " + event.name, events)):
         i = list(map(lambda event: event.date[5:] + " - " + event.name, events)).index(event.message)
         person.chatState = ChatState.REGISTERING_EMAIL
@@ -164,7 +132,8 @@ def inEventsReplyAdmin(person, event):
                            keyboard=backKeyboard.get_keyboard(),
                            user_ids=event.user_id
                            )
-        registeringPersons[person] = events[i]
+        registeringPersons = loop.registeringPersons
+        registeringPersons[person.id] = events[i]
         person.chatState = ChatState.REGISTERING_EMAIL
         print(person.chatState)
 
@@ -216,6 +185,7 @@ def registeringNameReply(person, event):
 replys.append(registeringNameReply)
 
 def registeringEventReply(person, event):
+    events = loop.events
     if event.message == "Назад":
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Введите имя",
@@ -231,7 +201,8 @@ def registeringEventReply(person, event):
                                keyboard=backKeyboard.get_keyboard(),
                                user_ids=event.user_id
                                )
-            registeringPersons[person] = events[i]
+            registeringPersons = loop.registeringPersons
+            registeringPersons[person.id] = events[i]
             person.chatState = ChatState.REGISTERING_EMAIL
             print(person.chatState)
         else:
@@ -281,50 +252,9 @@ def inQuestionReply(person, event):
 replys.append(inQuestionReply)
 
 
-def making_question_reply(person, event):
-    if event.message == "Вернуться в меню":
-        showEvents(event, person)
-        person.chatState = ChatState.IN_EVENTS
-    elif len(event.message) <= 20:
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите ответ на вопрос",
-                           keyboaard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        unFinishedQuestions.append([event.message, person.id])
-        person.chatState = ChatState.MAKING_ANSWER
-
-    else:
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Вопрос должен содержать меньше 20 символов, введите вопрос короче",
-                           keyboaard=backToMenuKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-replys.append(making_question_reply)
-
-def makingAnswerReply(person, event):
-    if event.message == "Назад":
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите ворос",
-                           keyboaard=backToMenuKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        for i in range(len(unFinishedQuestions)):
-            if unFinishedQuestions[i][1] == person.id:
-                unFinishedQuestions.remove(unFinishedQuestions[i])
-                break
-    else:
-        for i in range(len(unFinishedQuestions)):
-            if unFinishedQuestions[i][1] == person.id:
-                questions.append([unFinishedQuestions[i][0], event.message])
-                changeMenuKeyboard(questions)
-                unFinishedQuestions.remove(unFinishedQuestions[i])
-                break
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Всё готово, вернуться в меню?",
-                           keyboard=backToMenuKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        person.chatState = ChatState.IN_QUESTION
-replys.append(makingAnswerReply)
-
 def makingEventReply(person, event):
+    events = loop.events
+    senders = loop.senders
     if event.message == "Вернуться в меню":
         showEvents(event, person)
         person.chatState = ChatState.IN_EVENTS
@@ -338,53 +268,7 @@ def makingEventReply(person, event):
                            keyboaard=backToMenuKeyboard.get_keyboard(),
                            user_ids=event.user_id)
         person.chatState = ChatState.IN_QUESTION
-
-def makingDateReply(person, event):
-    if event.message == "Назад":
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите название события",
-                           keyboard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        person.chatState = ChatState.MAKING_EVENT
-    elif re.fullmatch('\d{4}-\d\d-\d\d', event.message) \
-            and int(event.message[0:4])>=2021 \
-            and 12>=int(event.message[5:7])>0 \
-            and 31>=int(event.message[8:10])>0:
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите время в формате ЧЧ:ММ",
-                           keyboard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        person.chatState = ChatState.MAKING_TIME
-        unFinishedEvents[(list(map(lambda evenent: event.adminId, events)).index(person.id))].date = event.message
-    else:
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Формат не подходящий, введите дату в формате ГГГГ-ММ-ДД",
-                           keyboard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-replys.append(makingDateReply)
-
-def deleteQuestionReply(person, event):
-    if event.message == "Вернуться в меню":
-        showEvents(event, person)
-        person.chatState = ChatState.IN_EVENTS
-    else:
-        for i in range(len(questions)):
-            if questions[i][0] == event.message:
-                questions.remove(questions[i])
-                changeMenuKeyboard(questions)
-                Lsvk.messages.send(random_id=get_random_id(),
-                                   message="Всё готово, вернуться в меню?",
-                                   keyboard=backToMenuKeyboard.get_keyboard(),
-                                   user_ids=event.user_id)
-                person.chatState = ChatState.IN_QUESTION
-                break
-        if i == len(questions) - 1:
-            Lsvk.messages.send(random_id=get_random_id(),
-                               message="Такого вопроса нет, выбирите сущесствующий",
-                               keyboard=backToMenuKeyboard.get_keyboard(),
-                               user_ids=event.user_id)
-replys.append(deleteQuestionReply)
-
+replys.append(makingEventReply)
 
 def registeringEmail(person, event):
     if event.message == "Назад":
@@ -406,7 +290,8 @@ def registeringEmail(person, event):
 replys.append(registeringEmail)
 
 def registeringPhone(person, event):
-    clubEvent = registeringPersons.get(person)
+    registeringPersons = loop.registeringPersons
+    clubEvent = registeringPersons.get(person.id)
     if event.message == "Назад":
         Lsvk.messages.send(random_id=get_random_id(),
                            message=f"Отправьте мне свой Email для завершения регистрации на {clubEvent.name}",
@@ -445,9 +330,9 @@ def registeringPhone(person, event):
         person.chatState = ChatState.BEFORE_EVENT
         person.phone = event.message
         person.registered = True
-        clubEvent.persons.append(person)
         registerPerson(clubEvent)
-        registeringPersons.pop(person)
+        clubEvent.persons.append(person)
+        registeringPersons.pop(person.id)
     else:
         Lsvk.messages.send(random_id=get_random_id(),
                            message="В телефоне должны быть только цифры, введите номер в правильном формате",
@@ -455,66 +340,30 @@ def registeringPhone(person, event):
                            user_ids=event.user_id)
 replys.append(registeringPhone)
 
-def makeEventTime(person, event):
-    if event.message == "Назад":
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите дату события в формате ГГГГ-ММ-ДД",
-                           keyboaard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        person.chatState = ChatState.MAKING_DATE
-    elif re.search(r'\d\d:\d\d', event.message):
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Оствлось добавить описание события, напишите его",
-                           keyboard=backToMenuKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-        person.chatState = ChatState.MAKING_DESCRIPTION
-        unFinishedEvents[list(map(lambda evenent: event.adminId, events)).index(person.id)].time = event.message
-    else:
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Время должно быть в формате ЧЧ:ММ, укажите время правильно",
-                           keyboard=backToMenuKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-replys.append(makeEventTime)
 
 
-
-def makeEventDescription(person, event):
-    if event.message == "Назад":
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Введите время в формате ЧЧ:ММ",
-                           keyboard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-    else:
-        unFinishedEvents[list(map(lambda evenent: event.adminId, events)).index(person.id)].description = event.message
-        events.append(unFinishedEvents[list(map(lambda evenent: event.adminId, events)).index(person.id)])
-        unFinishedEvents.pop(list(map(lambda evenent: event.adminId, events)).index(person.id))
-        newEvent(events[-1])
-        person.chatState = ChatState.IN_QUESTION
-        Lsvk.messages.send(random_id=get_random_id(),
-                           message="Вcё готово, вернуться в меню?",
-                           keyboard=backKeyboard.get_keyboard(),
-                           user_ids=event.user_id)
-replys.append(makeEventDescription)
 
 def beforeEventReply(person, event):
     answers = ["Студент 1-2 курсов", "Студент 3-4 курсов", "Студент магистратуры или специалитета", "Выпускник, нет опыта работы", "Выпускник, опыт работы 1-2 года", "Выпускник, опыт работы 3-5 лет"]
 
-    [message, kb] = makeQuestionMessage(answers)
+    [message, kb] = makeQuestionMessage(answers=answers, person=person)
     if event.message == "💡 Ответить на вопросы":
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Кто вы?" + "\n\n" + message,
                            keyboard=kb.get_keyboard(),
                            user_ids=event.user_id)
         person.chatState = ChatState.ANSWERING_ONE
-        personsAnswering[person] = answers
+
 replys.append(beforeEventReply)
 
 def answeringOneReply(person, event):
+    personsAnswering = loop.personsAnswering
     if event.message in personsAnswering.get(person).keys():
+        print(personsAnswering)
         person.answers["Кто вы?"] = personsAnswering.get(person).get(event.message)
         personsAnswering.pop(person)
         answers = ["Боюсь не найти работу после выпуска", "Не понимаю, кем хочу работать после вуза", "Текущая специальность не для меня", "Другое"]
-        [kb, message] = makeQuestionMessage(answers)
+        [message, kb] = makeQuestionMessage(answers, person)
 
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Что в вашей карьере беспокоит вас больше всего?" + "\n\n" + message,
@@ -524,14 +373,17 @@ def answeringOneReply(person, event):
 replys.append(answeringOneReply)
 
 def answeringTwoReply(person, event):
+    personsAnswering = loop.personsAnswering
     if event.message in personsAnswering.get(person).keys():
-        if event.message == "◼":
+        if event.message == "◾":
             Lsvk.messages.send(random_id=get_random_id(),
                                message="Поделитесь со мной? Формулирование проблемы — первый шаг к ее решению ☝🤓",
                                user_ids=event.user_id)
+            personsAnswering.pop(person)
             person.chatState = ChatState.ANSWEING_TWO_OTHER
         else:
             person.answers["Что в вашей карьере беспокоит вас больше всего?"] = personsAnswering.get(person).get(event.message)
+            personsAnswering.pop(person)
             [message, kb] = makeQuestionMessage(["Ещё не думал об этом",
                                                  "Хочу изменить специальность",
                                                  "Задумываюсь о стажировке в компании",
@@ -542,7 +394,6 @@ def answeringTwoReply(person, event):
                                keyboard=kb.get_keyboard(),
                                user_ids=event.user_id)
             person.chatState = ChatState.ANSWEING_THREE
-        personsAnswering.pop(person)
 replys.append(answeringTwoReply)
 
 def answeringTwoOtherReply(person, event):
@@ -560,14 +411,15 @@ def answeringTwoOtherReply(person, event):
 replys.append(answeringTwoOtherReply)
 
 def answeringThreeReply(person, event):
+    personsAnswering = loop.personsAnswering
     if event.message in personsAnswering.get(person).keys():
         person.answers["Уже задумывались, как изменить карьерное направление?"] = personsAnswering.get(person).get(event.message)
         personsAnswering.pop(person)
-        person.chatState.ANSWERING_FOUR
-        [message, kb] = makeQuestionMessage("Недостаточно hard skills",
+        person.chatState = ChatState.ANSWERING_FOUR
+        [message, kb] = makeQuestionMessage(["Недостаточно hard skills",
                                             "Не хватает soft skills",
                                             "Нет релевантного опыта",
-                                            "Боюсь не пройти все этапы отбора.")
+                                            "Боюсь не пройти все этапы отбора."], person)
         Lsvk.messages.send(random_id=get_random_id(),
                            message="👍🏻 Прекрасно!\n🤔 Но раз вы зарегистрировались на вебинар, у вас наверняка есть страхи,"
                                    " связанные с трудоустройством. Со мной можно поделиться!" + "\n\n" + message,
@@ -576,6 +428,7 @@ def answeringThreeReply(person, event):
 replys.append(answeringThreeReply)
 
 def answeringFourReply(person, event):
+    personsAnswering = loop.personsAnswering
     if event.message in personsAnswering.get(person).keys():
         person.answers["у вас есть страхи, связанные с трудоустройством?"] = personsAnswering.get(person).get(event.message)
         personsAnswering.pop(person)

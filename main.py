@@ -1,37 +1,24 @@
 import threading
 import time
 
-from FuncsWithDataBase import getPersonFromDb, changeDb
+from FuncsWithDataBase import getPersonFromDb, changeDb, getAllEvents, start, finish
 from person import getPersonFromArr
 
-import vk_api, vk
-from vk_api.keyboard import VkKeyboard, VkKeyboardColor
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-from vk_api.utils import get_random_id
 from vk_api.longpoll import VkLongPoll, VkEventType
 from reply import reply
-from sending import Sender
+from loop import loop
 
+def stopPolling():
+    Lslongpoll = loop.Lslongpoll
+    for event in Lslongpoll.listen():
+        if event.type == VkEventType.MESSAGE_NEW and event.to_me and event.message == "stop1234":
+            finish(loop)
 
-
-
-from event import Event
-
-vk_session = vk_api.VkApi(token='da09561f3d70f75f9bfa07a169c2e8a092e2ceded34bcafe0b48904208e83475d2837187d6d6ff562c79d')
-
-deleteLongPoll = VkLongPoll(vk_session)
-Lslongpoll = VkLongPoll(vk_session)
-Lsvk = vk_session.get_api()
-
-persons = []
-personIDs = []
-
-def debugFoo():
-    while True:
-        time.sleep(0.5)
-        print(persons)
 
 def lsPolling():
+    persons = loop.persons
+    personIDs = loop.personIDs
+    Lslongpoll = loop.Lslongpoll
     for event in Lslongpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.user_id not in personIDs:
@@ -42,6 +29,11 @@ def lsPolling():
             reply(person, event)
 
 def personDeleting():
+    activeIds = loop.activeIds
+    threads = loop.threads
+    persons = loop.persons
+    personIDs = loop.personIDs
+    deleteLongPoll = loop.deleteLongPoll
 
     def waiting(id):
         while True:
@@ -53,9 +45,6 @@ def personDeleting():
                 persons.remove(getPersonFromArr(persons, id))
                 personIDs.remove(id)
                 return
-
-    activeIds = []
-    threads = []
 
     for event in deleteLongPoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -69,15 +58,5 @@ def personDeleting():
                     waitThread.start()
                     threads.append(waitThread)
 
-
-
-sendingThread = threading.Thread(target=Sender.sending, args=(senders))
-
-lsPollingThread = threading.Thread(target=lsPolling)
-personDeletingThread = threading.Thread(target=personDeleting)
-
-personDeletingThread.start()
-lsPollingThread.start()
-sendingThread.start()
-
-lsPollingThread.join()
+if __name__ == '__main__':
+    loop.run()

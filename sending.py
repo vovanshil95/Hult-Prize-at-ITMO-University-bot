@@ -2,9 +2,11 @@ from datetime import datetime
 from vk_api import keyboard
 from person import ChatState
 from event import Event
-from main import persons
-from reply import Lsvk, get_random_id
-from FuncsWithDataBase import getAllPersons
+import vk_api
+from vk_api.utils import get_random_id
+
+vk_session = vk_api.VkApi("da09561f3d70f75f9bfa07a169c2e8a092e2ceded34bcafe0b48904208e83475d2837187d6d6ff562c79d")
+Lsvk = vk_session.get_api()
 
 class Sender:
     time: datetime
@@ -22,10 +24,11 @@ class Sender:
         self.persons = event.persons
         self.time =  datetime.strptime(event.date + ' ' + event.time, "%Y-%m-%d %H:%M")
 
-    def __init__(self, chatState: ChatState, time: datetime, message: str, keyboard: keyboard.VkKeyboard=None):
+    def __init__(self, chatState: ChatState, time: datetime, message: str, persons: list,  keyboard: keyboard.VkKeyboard=None):
         self.message = message
         self.keyboaroard = keyboard
         personsnotdb = list(filter(lambda person: person.chatState == chatState, persons))
+        from FuncsWithDataBase import getAllPersons
         self.persons = personsnotdb + list(filter(lambda personDB: personDB not in list(map(lambda person: person.id, personsnotdb)), getAllPersons()))
         self.time = time
 
