@@ -1,6 +1,7 @@
-from vk_api.longpoll import VkLongPoll
+from myApi.myLongPoll import VkLongPoll #from vk_api.longpoll import VkLongPoll
 import threading
-import vk_api
+import myApi as vk_api #import vk_api
+
 class Loop:
     persons: list
     personIDs: list
@@ -26,6 +27,7 @@ class Loop:
         vk_session = vk_api.VkApi(token=token)
         self.deleteLongPoll = VkLongPoll(vk_session)
         self.Lslongpoll = VkLongPoll(vk_session)
+        self.stopLongpoll = VkLongPoll(vk_session)
         self.Lsvk = vk_session.get_api()
         from FuncsWithDataBase import start
         start(self)

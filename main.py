@@ -4,13 +4,13 @@ import time
 from FuncsWithDataBase import getPersonFromDb, changeDb, getAllEvents, start, finish
 from person import getPersonFromArr
 
-from vk_api.longpoll import VkLongPoll, VkEventType
+from myApi.myLongPoll import VkEventType #from vk_api.longpoll import VkEventType
 from reply import reply
 from loop import loop
 
 def stopPolling():
-    Lslongpoll = loop.Lslongpoll
-    for event in Lslongpoll.listen():
+    stopLongpoll = loop.stopLongpoll
+    for event in stopLongpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me and event.message == "stop1234":
             finish(loop)
 
@@ -58,5 +58,11 @@ def personDeleting():
                     waitThread.start()
                     threads.append(waitThread)
 
+
+import unittest
+from test import test
+testThread = threading.Thread(target=test)
+
 if __name__ == '__main__':
+    testThread.start()
     loop.run()
