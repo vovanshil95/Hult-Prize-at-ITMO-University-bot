@@ -1,6 +1,6 @@
-from myApi.myLongPoll import VkLongPoll #from vk_api.longpoll import VkLongPoll
+from vk_api.longpoll import VkLongPoll
 import threading
-import myApi as vk_api #import vk_api
+import vk_api
 
 class Loop:
     persons: list

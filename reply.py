@@ -2,9 +2,9 @@ from person import Person, ChatState
 
 import uuid
 
-import myApi as vk_api #import vk_api
-from myApi.myUtils import get_random_id #from vk_api.utils import get_random_id
-from myApi.keyboard import VkKeyboard #from vk_api.keyboard import VkKeyboard
+import vk_api
+from vk_api.utils import get_random_id
+from vk_api.keyboard import VkKeyboard
 
 from event import Event
 
@@ -50,12 +50,12 @@ eventsKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
 
 
 def changeEventsKeyBoard(events):
-    # eventsKeyboard.lines = [[]]
-    # eventsKeyboard.keyboard = {
-    #     'one_time': eventsKeyboard.one_time,
-    #     'inline': eventsKeyboard.inline,
-    #     'buttons': eventsKeyboard.lines
-    # }
+    eventsKeyboard.lines = [[]]
+    eventsKeyboard.keyboard = {
+        'one_time': eventsKeyboard.one_time,
+        'inline': eventsKeyboard.inline,
+        'buttons': eventsKeyboard.lines
+    }
     for event in events:
         eventsKeyboard.add_button(event.date[5:] + " - " + event.name, color="positive")
         if events.index(event) < len(events) - 1:
