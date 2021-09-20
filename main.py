@@ -1,37 +1,25 @@
 import threading
 import time
 
-from FuncsWithDataBase import getPersonFromDb, changeDb
+from FuncsWithDataBase import getPersonFromDb, changeDb, getAllEvents, start, finish
 from person import getPersonFromArr
 
-import vk_api, vk
-from vk_api.keyboard import VkKeyboard, VkKeyboardColor
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-from vk_api.utils import get_random_id
-from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.longpoll import VkEventType
 from reply import reply
-from sending import Sender
+from loop import loop
 
+def stopPolling():
+    stopLongpoll = loop.stopLongpoll
+    for event in stopLongpoll.listen():
+        if event.type == VkEventType.MESSAGE_NEW and event.to_me and event.message == "stop1234":
+            finish(loop)
 
-
-
-from event import Event
-
-vk_session = vk_api.VkApi(token='da09561f3d70f75f9bfa07a169c2e8a092e2ceded34bcafe0b48904208e83475d2837187d6d6ff562c79d')
-
-deleteLongPoll = VkLongPoll(vk_session)
-Lslongpoll = VkLongPoll(vk_session)
-Lsvk = vk_session.get_api()
-
-persons = []
-personIDs = []
-
-def debugFoo():
-    while True:
-        time.sleep(0.5)
-        print(persons)
 
 def lsPolling():
+    persons = loop.persons
+    personIDs = loop.personIDs
+    Lslongpoll = loop.Lslongpoll
+    activeIds = loop.activeIds
     for event in Lslongpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.user_id not in personIDs:
@@ -41,7 +29,13 @@ def lsPolling():
             person = getPersonFromArr(persons, event.user_id)
             reply(person, event)
 
+
 def personDeleting():
+    activeIds = loop.activeIds
+    threads = loop.threads
+    persons = loop.persons
+    personIDs = loop.personIDs
+    deleteLongPoll = loop.deleteLongPoll
 
     def waiting(id):
         while True:
@@ -54,16 +48,11 @@ def personDeleting():
                 personIDs.remove(id)
                 return
 
-    activeIds = []
-    threads = []
-
     for event in deleteLongPoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.user_id not in activeIds:
                 activeIds.append(event.user_id)
-                threadRunning = False
-                for thread in threads:
-                    threadRunning = thread.name == str(event.user_id)
+                threadRunning = str(event.user_id) in list(map(lambda th: th.name, threads))
                 if not threadRunning:
                     waitThread = threading.Thread(target=waiting, name=str(event.user_id), args=[event.user_id])
                     waitThread.start()
@@ -71,13 +60,5 @@ def personDeleting():
 
 
 
-sendingThread = threading.Thread(target=Sender.sending, args=(senders))
-
-lsPollingThread = threading.Thread(target=lsPolling)
-personDeletingThread = threading.Thread(target=personDeleting)
-
-personDeletingThread.start()
-lsPollingThread.start()
-sendingThread.start()
-
-lsPollingThread.join()
+if __name__ == '__main__':
+    loop.run()

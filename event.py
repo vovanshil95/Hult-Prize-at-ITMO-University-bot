@@ -22,6 +22,6 @@ class Event:
 
     def getPersonIds(self):
         personIds = []
-        for person in self.persons:
-            personIds.append(person.id)
+        for personId in self.persons:
+            personIds.append(personId)
         return personIds
