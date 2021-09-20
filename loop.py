@@ -15,13 +15,13 @@ class Loop:
     Lslongpoll: VkLongPoll
 
 
-    def __init__(self, token: "str", persons=[], personIDs =[], activeIds = [],  threads = [], events = [], senders = [], registeringPersons = {}, personsAnswering = {}):
+    def __init__(self, token: str, persons=[], personIDs =[], activeIds = [],  threads = [], events = [], senders = [], registeringPersons = {}, personsAnswering = {}):
         self.persons = persons
         self.personIDs = personIDs
         self.activeIds = activeIds
         self.threads = threads
-        self.events: events
-        self.senders: senders
+        self.events= events
+        self.senders= senders
         self.registeringPersons = registeringPersons
         self.personsAnswering = personsAnswering
         vk_session = vk_api.VkApi(token=token)

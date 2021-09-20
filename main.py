@@ -19,6 +19,7 @@ def lsPolling():
     persons = loop.persons
     personIDs = loop.personIDs
     Lslongpoll = loop.Lslongpoll
+    activeIds = loop.activeIds
     for event in Lslongpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.user_id not in personIDs:
@@ -27,6 +28,7 @@ def lsPolling():
                 personIDs.append(event.user_id)
             person = getPersonFromArr(persons, event.user_id)
             reply(person, event)
+
 
 def personDeleting():
     activeIds = loop.activeIds
@@ -50,9 +52,7 @@ def personDeleting():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.user_id not in activeIds:
                 activeIds.append(event.user_id)
-                threadRunning = False
-                for thread in threads:
-                    threadRunning = thread.name == str(event.user_id)
+                threadRunning = str(event.user_id) in list(map(lambda th: th.name, threads))
                 if not threadRunning:
                     waitThread = threading.Thread(target=waiting, name=str(event.user_id), args=[event.user_id])
                     waitThread.start()

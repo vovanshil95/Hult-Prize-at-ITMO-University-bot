@@ -40,11 +40,11 @@ def changeDb(person):
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
         state = 2*int(person.registered) + int(person.admin)
-        cur.execute(f"""UPDATE persons SET PERSON_NAME = '{person.name}',
-                                       EVENTS = '{person.events}',
+        cur.execute(f"""UPDATE persons SET PERSON_NAME = "{person.name}",
+                                       EVENTS = "{person.events}",
                                        STATE = {state},
-                                       PHONE = '{person.phone}',
-                                       EMAIL = '{person.email}',
+                                       PHONE = "{person.phone}",
+                                       EMAIL = "{person.email}",
                                        ANSWERS = "{str(person.answers)}",
                                        CHAT_STATE = {person.chatState.value}
                     WHERE VK_ID = {person.id}""")
@@ -54,10 +54,15 @@ def newEvent(event):
         cur = con.cursor()
         cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, EV_TIME, EV_DESCRIPTION, EV_HEADER, NUMBER_OF_PERSONS) VALUES ('{event.id}', '{event.name}', '{event.date}', '{event.time}', '{event.description}', {event.header}, 0)""")
 
-def registerPerson(event):
+def registerPerson(event: Event, person: Person):
+    person.registered = True
+    event.persons.append(person.id)
     with sqlite3.connect('bot.db') as con:
         cur = con.cursor()
-        cur.execute(f"""UPDATE events SET PERSON_IDS = '{' '.join(map(str, event.getPersonIds()))}', NUMBER_OF_PERSONS = '{len(event.persons)}' WHERE EVENT_ID = '{event.id}'""")
+        cur.execute(f"""UPDATE events SET PERSON_IDS = "{' '.join(map(lambda id: str(id), event.getPersonIds()))}", NUMBER_OF_PERSONS = {len(event.persons)} WHERE EVENT_ID = "{event.id}" """)
+        cur.execute(
+            f"""UPDATE events SET PERSON_IDS = "{' '.join(map(lambda id: str(id), event.getPersonIds()))}", NUMBER_OF_PERSONS = {len(event.persons)} WHERE EVENT_ID = "{event.id}" """)
+        cur.execute(f"""UPDATE persons SET REGISTERING = '' WHERE VK_ID = {person.id}""")
 
 def getAllPersons():
     persons = []
@@ -67,14 +72,14 @@ def getAllPersons():
         line = cur.fetchall()
         for person in line:
             state = "0" * (stateNumber - len(bin(person[3])[2:])) + bin(person[3])[2:]
-            persons.append(Person(chatState=ChatState(person[4]),
+            persons.append(Person(chatState=ChatState(person[4]) if person[4] != None else ChatState.JUST_STARTED,
                           id=person[0],
-                          name=person[1],
-                          events=person[2],
+                          name=person[1] if person[1] != "None" else None,
+                          events=list(map(lambda ev: ev[1:-1], person[2][1:-1].split(", "))) if person[2] != "[]" else [],
                           registered=bool(int(state[0])),
                           admin=bool(int(state[1])),
-                          phone=person[5],
-                          email=person[6],
+                          phone=person[5] if person[5] != "None" else None,
+                          email=person[6] if person[6] != "None" else None,
                           answers=ast.literal_eval(person[7])
                           ))
     return persons
@@ -113,16 +118,16 @@ def start(loop):
                 senders.append(Sender(chatState=ChatState(sender[6]), message=sender[2], time=sender[1], keyboard=sender[3], persons=persons))
             elif sender[0] == 2 :
                 senders.append(Sender(persons=list(filter(lambda person: person.id == sender[4], persons))[0], message=sender[2], time=sender[1], keyboard=sender[3]))
-        cur.execute(f"""SELECT * FROM persons WHERE length(REGGISTERING) > 0""")
+        cur.execute(f"""SELECT * FROM persons WHERE length(REGISTERING) > 0""")
         line = cur.fetchall()
         for regPerson in line:
             person = list(filter(lambda person: person.id == regPerson[0], persons))[0]
-            registeringPersons[persons] = list(filter(lambda event: event.id == regPerson[8], events))[0]
+            registeringPersons[person.id] = list(filter(lambda event: event.id == regPerson[8], events))[0].id
         cur.execute(f"""SELECT * FROM persons WHERE length(ANSWERING) > 0""")
         line = cur.fetchall()
         for ansPerson in line:
-            person = list(filter(lambda person: person.id == regPerson[0], persons))[0]
-            personsAnswering[person] = ast.literal_eval(ansPerson[9])
+            person = list(filter(lambda person: person.id == ansPerson[0], persons))[0]
+            personsAnswering[person.id] = ast.literal_eval(ansPerson[9])
 
     loop.events = events
     loop.senders = senders
@@ -137,7 +142,7 @@ def finish(loop):
     persons = loop.persons
     senders = loop.senders
     personAnswering = loop.personsAnswering
-    personRegistering = loop.registeringPersons
+    registeringPerson = loop.registeringPersons
     for person in persons:
         changeDb(person)
 
@@ -153,9 +158,10 @@ def finish(loop):
                 cur.execute(
                     f"""INSERT INTO senders (TYPE, MESSAGE, KEYBOARD, S_TIME, S_PERSON_IDS) VALUES (2, '{sender.message}', '{sender.keyboaroard}', '{sender.time}', {' '.join(map(str, list(map(lambda person: person.id, sender.persons))))})""")
 
-        for person in personAnswering:
-            cur.execute(f"""UPDATE  persons SET ANSWERING = '{str(personAnswering.get(person))}' WHERE VK_ID = {person.id}""")
+        for personId in personAnswering:
 
-        for person in personRegistering:
-            cur.execute(f"""UPDATE  persons SET ANSWERING = '{personRegistering.get(person).id}' WHERE VK_ID = {person.id}""")
+            cur.execute(f"""UPDATE  persons SET ANSWERING = "{str(personAnswering.get(personId))}" WHERE VK_ID = {personId}""")
+
+        for personId in registeringPerson:
+            cur.execute(f"""UPDATE  persons SET REGISTERING = "{str(registeringPerson.get(personId))}" WHERE VK_ID = {personId}""")
 

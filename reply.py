@@ -20,7 +20,7 @@ Lsvk = loop.Lsvk
 menuKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
 
 
-def makeQuestionMessage(answers:list, person):
+def makeQuestionMessage(answers:list, personId: int):
     kb = vk_api.keyboard.VkKeyboard(inline=True)
     buttons = ['🔸', '🔹', '◽', '◾', '🔺', '🔳']
     message = ""
@@ -32,7 +32,8 @@ def makeQuestionMessage(answers:list, person):
             kb.add_line()
         answersButtons[buttons[i]] = answers[i]
     personsAnswering = loop.personsAnswering
-    personsAnswering[person] = answersButtons
+
+    personsAnswering[personId] = answersButtons
     return [message, kb]
 
 adminMenuKeyboard = vk_api.keyboard.VkKeyboard(inline=True)
@@ -111,7 +112,7 @@ def inEventsReply(person, event):
                            user_ids=event.user_id
                            )
         registeringPersons = loop.registeringPersons
-        registeringPersons[person.id] = events[i]
+        registeringPersons[person.id] = events[i].id
         person.chatState = ChatState.REGISTERING_EMAIL
     else:
         Lsvk.messages.send(random_id=get_random_id(),
@@ -132,7 +133,7 @@ def inEventsReplyAdmin(person, event):
                            user_ids=event.user_id
                            )
         registeringPersons = loop.registeringPersons
-        registeringPersons[person.id] = events[i]
+        registeringPersons[person.id] = events[i].id
         person.chatState = ChatState.REGISTERING_EMAIL
 
     elif event.message == "Добавить вопрос":
@@ -200,7 +201,7 @@ def registeringEventReply(person, event):
                                user_ids=event.user_id
                                )
             registeringPersons = loop.registeringPersons
-            registeringPersons[person.id] = events[i]
+            registeringPersons[person.id] = events[i].id
             person.chatState = ChatState.REGISTERING_EMAIL
         else:
             Lsvk.messages.send(random_id=get_random_id(),
@@ -286,8 +287,9 @@ def registeringEmail(person, event):
 replys.append(registeringEmail)
 
 def registeringPhone(person, event):
+    events = loop.events
     registeringPersons = loop.registeringPersons
-    clubEvent = registeringPersons.get(person.id)
+    clubEvent = [event for event in events if event.id == registeringPersons.get(person.id)][0]
     if event.message == "Назад":
         Lsvk.messages.send(random_id=get_random_id(),
                            message=f"Отправьте мне свой Email для завершения регистрации на {clubEvent.name}",
@@ -325,9 +327,8 @@ def registeringPhone(person, event):
                            user_ids=event.user_id)
         person.chatState = ChatState.BEFORE_EVENT
         person.phone = event.message
-        person.registered = True
-        registerPerson(clubEvent)
-        clubEvent.persons.append(person)
+        registerPerson(clubEvent, person)
+
         registeringPersons.pop(person.id)
     else:
         Lsvk.messages.send(random_id=get_random_id(),
@@ -340,10 +341,10 @@ replys.append(registeringPhone)
 
 
 def beforeEventReply(person, event):
-    answers = ["Студент 1-2 курсов", "Студент 3-4 курсов", "Студент магистратуры или специалитета", "Выпускник, нет опыта работы", "Выпускник, опыт работы 1-2 года", "Выпускник, опыт работы 3-5 лет"]
-
-    [message, kb] = makeQuestionMessage(answers=answers, person=person)
     if event.message == "💡 Ответить на вопросы":
+        answers = ["Студент 1-2 курсов", "Студент 3-4 курсов", "Студент магистратуры или специалитета",
+                   "Выпускник, нет опыта работы", "Выпускник, опыт работы 1-2 года", "Выпускник, опыт работы 3-5 лет"]
+        [message, kb] = makeQuestionMessage(answers=answers, personId=person.id)
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Кто вы?" + "\n\n" + message,
                            keyboard=kb.get_keyboard(),
@@ -354,11 +355,11 @@ replys.append(beforeEventReply)
 
 def answeringOneReply(person, event):
     personsAnswering = loop.personsAnswering
-    if event.message in personsAnswering.get(person).keys():
-        person.answers["Кто вы?"] = personsAnswering.get(person).get(event.message)
-        personsAnswering.pop(person)
+    if event.message in personsAnswering.get(person.id).keys():
+        person.answers["Кто вы?"] = personsAnswering.get(person.id).get(event.message)
+        personsAnswering.pop(person.id)
         answers = ["Боюсь не найти работу после выпуска", "Не понимаю, кем хочу работать после вуза", "Текущая специальность не для меня", "Другое"]
-        [message, kb] = makeQuestionMessage(answers, person)
+        [message, kb] = makeQuestionMessage(answers, person.id)
 
         Lsvk.messages.send(random_id=get_random_id(),
                            message="Что в вашей карьере беспокоит вас больше всего?" + "\n\n" + message,
@@ -369,21 +370,21 @@ replys.append(answeringOneReply)
 
 def answeringTwoReply(person, event):
     personsAnswering = loop.personsAnswering
-    if event.message in personsAnswering.get(person).keys():
+    if event.message in personsAnswering.get(person.id).keys():
         if event.message == "◾":
             Lsvk.messages.send(random_id=get_random_id(),
                                message="Поделитесь со мной? Формулирование проблемы — первый шаг к ее решению ☝🤓",
                                user_ids=event.user_id)
-            personsAnswering.pop(person)
+            personsAnswering.pop(person.id)
             person.chatState = ChatState.ANSWEING_TWO_OTHER
         else:
-            person.answers["Что в вашей карьере беспокоит вас больше всего?"] = personsAnswering.get(person).get(event.message)
-            personsAnswering.pop(person)
+            person.answers["Что в вашей карьере беспокоит вас больше всего?"] = personsAnswering.get(person.id).get(event.message)
+            personsAnswering.pop(person.id)
             [message, kb] = makeQuestionMessage(["Ещё не думал об этом",
                                                  "Хочу изменить специальность",
                                                  "Задумываюсь о стажировке в компании",
                                                  "Планирую участвовать в кейс-чемпионатах",
-                                                 "Буду набираться опыта на своих проектах."], person)
+                                                 "Буду набираться опыта на своих проектах."], person.id)
             Lsvk.messages.send(random_id=get_random_id(),
                                message="😞 Согласен, не самая приятная вещь. Уже задумывались, как изменить карьерное направление?" + "\n\n" + message,
                                keyboard=kb.get_keyboard(),
@@ -397,7 +398,7 @@ def answeringTwoOtherReply(person, event):
                                          "Хочу изменить специальность",
                                          "Задумываюсь о стажировке в компании",
                                          "Планирую участвовать в кейс-чемпионатах",
-                                         "Буду набираться опыта на своих проектах."], person)
+                                         "Буду набираться опыта на своих проектах."], person.id)
     Lsvk.messages.send(random_id=get_random_id(),
                        message="😞 Согласен, не самая приятная вещь. Уже задумывались, как изменить карьерное направление?" + "\n\n" + message,
                        keyboard=kb.get_keyboard(),
@@ -407,14 +408,14 @@ replys.append(answeringTwoOtherReply)
 
 def answeringThreeReply(person, event):
     personsAnswering = loop.personsAnswering
-    if event.message in personsAnswering.get(person).keys():
-        person.answers["Уже задумывались, как изменить карьерное направление?"] = personsAnswering.get(person).get(event.message)
-        personsAnswering.pop(person)
+    if event.message in personsAnswering.get(person.id).keys():
+        person.answers["Уже задумывались, как изменить карьерное направление?"] = personsAnswering.get(person.id).get(event.message)
+        personsAnswering.pop(person.id)
         person.chatState = ChatState.ANSWERING_FOUR
         [message, kb] = makeQuestionMessage(["Недостаточно hard skills",
                                             "Не хватает soft skills",
                                             "Нет релевантного опыта",
-                                            "Боюсь не пройти все этапы отбора."], person)
+                                            "Боюсь не пройти все этапы отбора."], person.id)
         Lsvk.messages.send(random_id=get_random_id(),
                            message="👍🏻 Прекрасно!\n🤔 Но раз вы зарегистрировались на вебинар, у вас наверняка есть страхи,"
                                    " связанные с трудоустройством. Со мной можно поделиться!" + "\n\n" + message,
@@ -424,9 +425,9 @@ replys.append(answeringThreeReply)
 
 def answeringFourReply(person, event):
     personsAnswering = loop.personsAnswering
-    if event.message in personsAnswering.get(person).keys():
-        person.answers["у вас есть страхи, связанные с трудоустройством?"] = personsAnswering.get(person).get(event.message)
-        personsAnswering.pop(person)
+    if event.message in personsAnswering.get(person.id).keys():
+        person.answers["у вас есть страхи, связанные с трудоустройством?"] = personsAnswering.get(person.id).get(event.message)
+        personsAnswering.pop(person.id)
         person.chatState = ChatState.ANSWERING_FIVE
         Lsvk.messages.send(random_id=get_random_id(),
                            message="💡 Мы поможем вам! Но у меня остался еще один вопрос.\n Поделитесь со мной, почему вы решили зарегистрироваться на вебинар?",
