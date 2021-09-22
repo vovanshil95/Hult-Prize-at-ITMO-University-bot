@@ -1,18 +1,26 @@
-import sqlite3
+import pymysql
 from person import Person, ChatState
 from event import Event
 from sending import Sender
 import ast
+from config import host, user_name, password, db_name
 
 stateNumber = 2
 
 def getPersonFromDb(id):
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         cur.execute(f"""SELECT * FROM persons WHERE VK_ID = {id}""")
         line = cur.fetchall()
-        if line == []:
-            cur.execute(f"""INSERT INTO persons (VK_ID, STATE) VALUES ( {id}, 2)""")
+        if line == ():
+            cur.execute(f"""INSERT INTO persons (VK_ID, STATE) VALUES ({id}, 2)""")
+            con.commit()
             return Person(id=id,
                           registered=False,
                           admin=False,
@@ -24,6 +32,7 @@ def getPersonFromDb(id):
                           answers={}
                           )
         else:
+            line = [list(line[0].values())]
             state = "0" * (stateNumber-len(bin(line[0][3])[2:])) + bin(line[0][3])[2:]
             return Person(chatState=ChatState(line[0][4]),
                           id=id,
@@ -36,8 +45,15 @@ def getPersonFromDb(id):
                           answers=ast.literal_eval(line[0][7])
                           )
 
+
 def changeDb(person):
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         state = 2*int(person.registered) + int(person.admin)
         cur.execute(f"""UPDATE persons SET PERSON_NAME = "{person.name}",
@@ -48,28 +64,50 @@ def changeDb(person):
                                        ANSWERS = "{str(person.answers)}",
                                        CHAT_STATE = {person.chatState.value}
                     WHERE VK_ID = {person.id}""")
+        con.commit()
 
 def newEvent(event):
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         cur.execute(f"""INSERT INTO events (EVENT_ID, EVENT_NAME, EVENT_DATE, EV_TIME, EV_DESCRIPTION, EV_HEADER, NUMBER_OF_PERSONS) VALUES ('{event.id}', '{event.name}', '{event.date}', '{event.time}', '{event.description}', {event.header}, 0)""")
+        con.commit()
 
 def registerPerson(event: Event, person: Person):
     person.registered = True
     event.persons.append(person.id)
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         cur.execute(f"""UPDATE events SET PERSON_IDS = "{' '.join(map(lambda id: str(id), event.getPersonIds()))}", NUMBER_OF_PERSONS = {len(event.persons)} WHERE EVENT_ID = "{event.id}" """)
         cur.execute(
             f"""UPDATE events SET PERSON_IDS = "{' '.join(map(lambda id: str(id), event.getPersonIds()))}", NUMBER_OF_PERSONS = {len(event.persons)} WHERE EVENT_ID = "{event.id}" """)
         cur.execute(f"""UPDATE persons SET REGISTERING = '' WHERE VK_ID = {person.id}""")
+        con.commit()
 
 def getAllPersons():
     persons = []
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         cur.execute(f"""SELECT * FROM persons""")
         line = cur.fetchall()
+        line = list(map(lambda person: list(person.values()), line))
         for person in line:
             state = "0" * (stateNumber - len(bin(person[3])[2:])) + bin(person[3])[2:]
             persons.append(Person(chatState=ChatState(person[4]) if person[4] != None else ChatState.JUST_STARTED,
@@ -86,16 +124,23 @@ def getAllPersons():
 
 def getAllEvents():
     events = []
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         cur.execute(f"""SELECT * FROM events""")
         line = cur.fetchall()
+        line = list(map(lambda event: list(event.values()), line))
         for event in line:
             events.append(Event(id=event[0],
                                 name=event[1],
                                 date=event[2],
                                 adminId=event[3],
-                                persons=([] if event[4] == '' else event[4].split(" ")),
+                                persons=([] if event[4] == None else event[4].split(" ")),
                                 time=event[5],
                                 description=event[6],
                                 header=event[7]))
@@ -107,10 +152,17 @@ def start(loop):
     senders = []
     registeringPersons = {}
     personsAnswering = {}
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         cur.execute(f"""SELECT * FROM senders""")
         line = cur.fetchall()
+        line = list(map(lambda sender: list(sender.values()), line))
         for sender in line:
             if sender[0] ==0:
                 senders.append(Sender(event=list(filter(lambda event: event.id == sender[6], events))[0], message=sender[2], keyboard=sender[3]))
@@ -146,7 +198,13 @@ def finish(loop):
     for person in persons:
         changeDb(person)
 
-    with sqlite3.connect('bot.db') as con:
+    with pymysql.connect(
+            host=host,
+            user=user_name,
+            password=password,
+            database=db_name,
+            cursorclass=pymysql.cursors.DictCursor
+    ) as con:
         cur = con.cursor()
         for sender in senders:
             if sender.event:
@@ -164,4 +222,4 @@ def finish(loop):
 
         for personId in registeringPerson:
             cur.execute(f"""UPDATE  persons SET REGISTERING = "{str(registeringPerson.get(personId))}" WHERE VK_ID = {personId}""")
-
+        con.commit()
